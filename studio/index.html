@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#fbfbfd" />
+  <meta name="description" content="CrossModal Align Lab：低资源方言跨模态对齐、组合式零样本 OOV、语速不变注意力与路由陷阱交互实验室。" />
+  <title>CrossModal Align Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&amp;family=Noto+Sans+SC:wght@400..700&amp;family=Roboto+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230071e3'/%3E%3Ccircle cx='8' cy='12' r='2.5' fill='white'/%3E%3Ccircle cx='16' cy='8' r='2.2' fill='white' opacity='.85'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='white' opacity='.85'/%3E%3Cpath d='M10.3 11 14 9m-3.7 4L14 15' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="static/studio.css?v=lab-20261120" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="./" aria-label="CrossModal Align Lab 首页">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="7" cy="12" r="2.5" />
+            <circle cx="17" cy="7.5" r="2.2" />
+            <circle cx="17" cy="16.5" r="2.2" />
+            <path d="M9.4 11 14.8 8.4M9.4 13l5.4 2.6" />
+          </svg>
+        </span>
+        <span class="brand__text"><strong>CrossModal Align</strong><span>Lab</span></span>
+      </a>
+
+      <nav class="trilogy-nav" aria-label="白盒语音检索三部曲导航">
+        <a href="https://leeoisaboy.github.io/disentangle-acoustic-print/" target="_blank" rel="noopener">声学几何示波</a>
+        <span class="trilogy-nav__sep" aria-hidden="true">·</span>
+        <a href="https://leeoisaboy.github.io/audiollm-latent-kws/" target="_blank" rel="noopener">大模型审计台</a>
+        <span class="trilogy-nav__sep" aria-hidden="true">·</span>
+        <a href="./" class="is-current" aria-current="page">跨模态对齐实验室</a>
+      </nav>
+
+      <div class="topbar__meta">
+        <span class="live-pill">
+          <span class="status-dot is-live" aria-hidden="true"></span>
+          <span>v4 白盒沙盒</span>
+        </span>
+        <a class="compact-button" href="https://github.com/leeoisaboy/dialect-crossmodal-align" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="story">
+    <section class="hero hero--story" aria-labelledby="hero-title">
+      <div class="hero__center">
+        <p class="eyebrow">Cross-modal dialect alignment lab</p>
+        <h1 id="hero-title">高分未必真安全，<br /><span>对齐才能跨方言。</span></h1>
+        <p class="hero__lede">
+          把 PyTorch 模块里的数学机制变成肉眼可见的动态实验：亲眼见证 AUROC 0.999 下的 4% 路由塌方、音节乐高零样本 OOV 对决、语速弹性注意力与类条件 FSQ 离散晶格。
+        </p>
+
+        <div class="hero__actions">
+          <a href="#sec-trap" class="btn btn--primary">
+            <span>进入路由陷阱模拟器</span>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12m0 0-4.5-4.5M10 16l4.5-4.5" /></svg>
+          </a>
+          <a href="#sec-oov" class="btn btn--secondary">音节乐高 OOV 对决</a>
+          <a href="#sec-domain" class="btn btn--quiet">FSQ 离散晶格 ↓</a>
+        </div>
+
+        <div class="kpi-strip" aria-label="核心实验指标">
+          <div class="kpi-item">
+            <span class="kpi-item__num kpi-item__num--coral">0.999 → 4%</span>
+            <span class="kpi-item__label">路由陷阱假高分塌方</span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-item__num">93.8%</span>
+            <span class="kpi-item__label">组合式零样本 OOV 命中</span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-item__num kpi-item__num--teal">300 ms</span>
+            <span class="kpi-item__label">1/2/4 膨胀感受野覆盖</span>
+          </div>
+          <div class="kpi-item">
+            <span class="kpi-item__num">FSQ 5⁶</span>
+            <span class="kpi-item__label">掩码安全离散晶格</span>
+          </div>
+        </div>
+
+        <div class="scroll-cue" aria-hidden="true">
+          <span>向下滚动</span>
+          <svg viewBox="0 0 20 28" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M10 3v20M4.5 17.5 10 23l5.5-5.5" /></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 / Routing Trap Collapse Simulator -->
+    <section id="sec-trap" class="showcase" data-scroll-stage="trap" aria-labelledby="trap-title">
+      <div class="showcase__head">
+        <div>
+          <p class="eyebrow">01 / Routing trap simulator</p>
+          <h2 id="trap-title">AUROC 0.999，<br /><span>命中却跌到 4%。</span></h2>
+        </div>
+        <div class="showcase__side">
+          <p class="showcase__lede">
+            跨域偏移让正负样本门控分整体左移，AUROC 与单轨排序纹丝不动，但死守 <code>target_fpr=0.01</code> 的红色阈值墙把 96% 的正样本直接拒之门外。画布正自动推演偏移塌方，拖动滑块可随时接管。
+          </p>
+        </div>
+      </div>
+
+      <div class="control-strip">
+        <div class="control-strip__slider">
+          <div class="control__label">
+            <span>跨域门控偏移 <code>gate_domain_shift</code></span>
+            <span id="shiftReadout" class="control__value">shift = -1.00 · 自动推演</span>
+          </div>
+          <input id="sliderShift" type="range" min="-1.5" max="0" step="0.02" value="-1.0" />
+          <div class="control__hint">
+            <span>-1.5 极端偏移</span>
+            <span>-1.0 实测塌方点 (4%)</span>
+            <span>-0.5 轻度偏移</span>
+            <span>0.0 同域 (100%)</span>
+          </div>
+        </div>
+        <div class="trap-gauges">
+          <div class="gauge">
+            <span class="gauge__label">单轨排序 Recall@5</span>
+            <strong id="gaugeRecall5" class="mono gauge__teal">100.0%</strong>
+          </div>
+          <div class="gauge">
+            <span class="gauge__label">门控 AUROC</span>
+            <strong id="gaugeAuroc" class="mono gauge__blue">0.999</strong>
+          </div>
+          <div class="gauge" id="gaugeDualBox">
+            <span class="gauge__label">双轨联合命中率</span>
+            <strong id="gaugeDualHit" class="mono gauge__coral">4.0% (2/50)</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage stage--trap">
+        <canvas id="canvasTrap"></canvas>
+      </div>
+
+      <div class="stage-foot">
+        <span class="stage-note">eval_routing_trap.py · reports/routing_trap.json · target_fpr=0.01 (threshold = 0.586)</span>
+        <div class="legend-row">
+          <span class="legend legend--teal"><span class="legend__swatch"></span>正样本门控分布</span>
+          <span class="legend legend--muted"><span class="legend__swatch"></span>负样本门控分布</span>
+          <span class="legend legend--coral"><span class="legend__swatch"></span>锁死阈值墙 (0.586)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 / Compositional Syllable LEGO x Zero-Shot OOV Arena -->
+    <section id="sec-oov" class="showcase" data-scroll-stage="oov" aria-labelledby="oov-title">
+      <div class="showcase__head">
+        <div>
+          <p class="eyebrow">02 / Zero-shot OOV arena</p>
+          <h2 id="oov-title">音节乐高重组，<br /><span>击穿闭集上限。</span></h2>
+        </div>
+        <div class="showcase__side">
+          <p class="showcase__lede" id="headDescText">
+            训练词与验证词互斥，但共享底层音节声学库。左侧连线实时追踪未见 OOV 新词的声母/韵母/韵尾出处，右侧四类对齐头同台 PK 零样本相似度矩阵。
+          </p>
+          <div class="mode-switch" role="group" aria-label="对齐头切换">
+            <button type="button" class="mode-pill is-danger" data-head-key="fixed_slot">FixedSlot</button>
+            <button type="button" class="mode-pill" data-head-key="audio_to_text_space">Audio→Text</button>
+            <button type="button" class="mode-pill is-active" data-head-key="text_anchored">TextAnchored</button>
+            <button type="button" class="mode-pill" data-head-key="lm_bridged">LMBridged</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="oov-meta-row">
+        <div class="oov-pills" id="oovWordButtons"></div>
+        <div class="oov-metrics">
+          <span class="mono">OOV Recall@1: <strong id="oovRecallReadout">89.2%</strong></span>
+          <span class="mono">CosFace 温度退火: <strong id="tempReadout">10.0 → 40.0</strong></span>
+        </div>
+      </div>
+
+      <div class="stage stage--oov">
+        <canvas id="canvasOov"></canvas>
+      </div>
+
+      <div class="stage-foot">
+        <span class="stage-note">SyntheticDialectWorld (Latin-square prefix) · CosFaceProjection (sub_centers=3)</span>
+        <div class="legend-row">
+          <span class="legend legend--blue"><span class="legend__swatch"></span>声母 Onset</span>
+          <span class="legend legend--teal"><span class="legend__swatch"></span>韵母 Nucleus</span>
+          <span class="legend legend--violet"><span class="legend__swatch"></span>韵尾 Coda</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 / Dilated Receptive Field x Speed-Invariant Cross-Modal Attention -->
+    <section id="sec-temporal" class="showcase" data-scroll-stage="temporal" aria-labelledby="temporal-title">
+      <div class="showcase__head">
+        <div>
+          <p class="eyebrow">03 / Temporal microscope</p>
+          <h2 id="temporal-title">拉长或快读，<br /><span>相位依然咬合。</span></h2>
+        </div>
+        <div class="showcase__side">
+          <p class="showcase__lede">
+            1/2/4 膨胀卷积在 50 Hz 下覆盖 300 ms 完整方言声调；归一化相对位置编码把任意语速映射到 [0, 1]，让 Q-Former 与 Pairwise 注意力像橡皮筋一样紧贴音节边界。
+          </p>
+          <div class="mode-switch" role="group" aria-label="跨模态注意力模式">
+            <button type="button" class="mode-pill is-active" data-attn-mode="qformer">Q-Former (4 潜查询)</button>
+            <button type="button" class="mode-pill" data-attn-mode="pairwise">Pairwise (零死参数 · 单次复用)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-strip">
+        <div class="control-strip__slider">
+          <div class="control__label">
+            <span>发音语速拉杆（50 Hz 声学帧）</span>
+            <span id="speedReadout" class="control__value">1.00x · 自动伸缩演示</span>
+          </div>
+          <input id="sliderSpeed" type="range" min="0.5" max="2.0" step="0.05" value="1.0" />
+          <div class="control__hint">
+            <span>0.5x 慢速拖音</span>
+            <span>1.0x 标准语速</span>
+            <span>2.0x 快速连读</span>
+          </div>
+        </div>
+        <div class="temporal-badges">
+          <span class="inline-tag">Dilations: (1, 2, 4) → 300 ms</span>
+          <span class="inline-tag inline-tag--teal" id="attnBadge">4 Latent Queries 自动分工</span>
+        </div>
+      </div>
+
+      <div class="stage stage--temporal">
+        <canvas id="canvasTemporal"></canvas>
+      </div>
+
+      <div class="stage-foot">
+        <span class="stage-note">LinearDialectAdapter · NormalizedRelativePositionalEncoding · LMBridgedHead</span>
+        <div class="legend-row">
+          <span class="legend legend--coral"><span class="legend__swatch"></span>绝对 PE（变速跑偏）</span>
+          <span class="legend legend--teal"><span class="legend__swatch"></span>归一化相对 PE [0, 1]</span>
+          <span class="legend legend--blue"><span class="legend__swatch"></span>300 ms 膨胀感受野</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 / Class-Conditional Domain Alignment x FSQ Discrete Lattice -->
+    <section id="sec-domain" class="showcase" data-scroll-stage="domain" aria-labelledby="domain-title">
+      <div class="showcase__head">
+        <div>
+          <p class="eyebrow">04 / Geometry &amp; FSQ lattice</p>
+          <h2 id="domain-title">同词跨方言重合，<br /><span>再落入离散晶格。</span></h2>
+        </div>
+        <div class="showcase__side">
+          <p class="showcase__lede">
+            形状代表词义，颜色代表方言域。普通边缘对齐会把不同词挤成一团，类条件对齐（<code>labels=classes</code>）精准拉齐同词异域；开启 FSQ 后连续点吸附到 [-1, 1] 离散网格。
+          </p>
+          <div class="domain-controls">
+            <div class="mode-switch" role="group" aria-label="域对齐策略">
+              <button type="button" class="mode-pill" data-domain-mode="none">无域正则</button>
+              <button type="button" class="mode-pill is-danger" data-domain-mode="marginal">边缘对齐 (坍缩)</button>
+              <button type="button" class="mode-pill is-active" data-domain-mode="conditional">类条件 + DANN</button>
+            </div>
+            <button id="btnToggleFsq" type="button" class="soft-button is-on">FSQ 离散晶格：开</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="fsq-metrics-bar">
+        <span class="mono">掩码安全 Perplexity: <strong class="metric-teal">18.4</strong> · Unique Code Ratio: <strong class="metric-teal">76%</strong></span>
+        <span class="mono fsq-warn">未过滤 padding 反例: Perplexity <strong>7.1</strong> · Unique <strong>34%</strong>（虚假拉低）</span>
+      </div>
+
+      <div class="stage stage--domain">
+        <canvas id="canvasDomain"></canvas>
+      </div>
+
+      <div class="stage-foot">
+        <span class="stage-note">domain_alignment_loss(labels=classes) · dann_alpha_schedule · FSQBottleneck.codebook_metrics(mask=valid)</span>
+        <div class="legend-row">
+          <span class="legend legend--blue"><span class="legend__swatch"></span>方言域 A</span>
+          <span class="legend legend--teal"><span class="legend__swatch"></span>方言域 B</span>
+          <span class="legend legend--coral"><span class="legend__swatch"></span>OOD 未见域 C</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>CrossModal Align Lab · 白盒语音检索三部曲 · 纯本地零上传</span>
+      <span>
+        <a href="https://leeoisaboy.github.io/disentangle-acoustic-print/" target="_blank" rel="noopener">Acoustic Print</a> ·
+        <a href="https://leeoisaboy.github.io/audiollm-latent-kws/" target="_blank" rel="noopener">Latent-KWS Audit</a> ·
+        <a href="https://github.com/leeoisaboy/dialect-crossmodal-align" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </footer>
+  </main>
+
+  <div id="studioToast" class="toast" role="status" aria-live="polite">
+    <span class="toast__dot" aria-hidden="true"></span>
+    <span id="studioToastText">实验室就绪</span>
+  </div>
+
+  <script src="static/studio.js?v=lab-20261120" defer></script>
+</body>
+</html>

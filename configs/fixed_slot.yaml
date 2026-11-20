@@ -1,0 +1,19 @@
+head: fixed_slot
+aggregator: pna_roi
+criterion: cosface
+input_dim: 64
+model_dim: 64
+vocabulary_size: 128
+class_count: 8
+domain_count: 3
+use_domain_adversarial: false
+compositional: true
+train_domains: [0, 1]
+val_domains: [2]
+epochs: 5
+steps_per_epoch: 4
+cosface_margin: 0.2
+cosface_scale: 32.0
+cosface_sub_centers: 3
+cosface_sub_center_temp_start: 10.0
+cosface_sub_center_temp_end: 40.0

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dialect-crossmodal-align"
+version = "0.4.0"
+description = "Modular benchmark for open-vocabulary zero-shot dialect audio-text alignment and domain adaptation (v4)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Dialect-CrossModal-Align Contributors" }]
+dependencies = ["numpy>=1.24", "torch>=2.1", "PyYAML>=6.0"]
+
+[project.scripts]
+dialect-align-train = "dialect_crossmodal_align.train:main"
+dialect-align-routing-trap = "dialect_crossmodal_align.eval_routing_trap:main"
+
+[tool.setuptools]
+packages = ["dialect_crossmodal_align"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

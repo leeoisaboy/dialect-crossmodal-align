@@ -1,0 +1,16 @@
+head: lm_bridged
+lm_interaction_mode: qformer
+aggregator: pna_roi
+criterion: contrastive
+contrastive_loss: multi_positive_infonce
+input_dim: 64
+model_dim: 64
+vocabulary_size: 128
+class_count: 8
+domain_count: 3
+use_domain_adversarial: false
+compositional: true
+train_domains: [0, 1]
+val_domains: [2]
+epochs: 5
+steps_per_epoch: 4

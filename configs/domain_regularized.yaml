@@ -1,0 +1,21 @@
+head: text_anchored
+aggregator: pna_roi
+criterion: contrastive
+contrastive_loss: multi_positive_infonce
+input_dim: 64
+model_dim: 64
+vocabulary_size: 128
+class_count: 8
+domain_count: 3
+use_domain_adversarial: true
+use_fsq: true
+fsq_levels: [5, 5, 5, 5, 5, 5]
+domain_target: query
+domain_alpha_max: 1.0
+dann_gamma: 10.0
+coral_weight: 0.1
+compositional: true
+train_domains: [0, 1]
+val_domains: [2]
+epochs: 5
+steps_per_epoch: 4
