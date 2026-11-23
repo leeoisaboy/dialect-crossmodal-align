@@ -17,6 +17,13 @@
 
 <p align="center"><strong>面向低资源方言开放词表检索的可训练跨模态对齐基准：把路由陷阱、零样本 OOV、语速弹性注意力与 FSQ 离散晶格全部做成看得见的白盒实验。</strong></p>
 
+
+## 方法流程图 · Architecture Pipeline
+
+<p align="center">
+  <img src="docs/assets/pipeline_architecture.jpg" alt="Dialect-CrossModal-Align 跨模态零样本 OOV 与路由陷阱架构流程图" width="1000" />
+</p>
+
 ## 正在运行的交互实验室
 
 <p align="center">
