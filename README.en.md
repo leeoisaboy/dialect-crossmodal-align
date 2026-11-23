@@ -17,6 +17,13 @@
 
 <p align="center"><strong>A trainable, ablatable cross-modal dialect alignment benchmark—turning routing traps, compositional zero-shot OOV, speed-invariant attention, and FSQ discrete lattices into live white-box experiments.</strong></p>
 
+
+## Architecture Pipeline
+
+<p align="center">
+  <img src="docs/assets/pipeline_architecture.jpg" alt="Dialect-CrossModal-Align Zero-Shot OOV & Routing Trap Pipeline" width="1000" />
+</p>
+
 ## The Live Interactive Lab
 
 <p align="center">
