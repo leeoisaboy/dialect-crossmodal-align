@@ -1,14 +1,23 @@
-# Modular source map (v4)
+# Modular Source Map (v5 Converged)
 
-| Public module | Consolidated idea (v4) | Integration rule |
+## Core 4-Stage Converged Pipeline (Default Production Path)
+
+| Public Module | Converged Role (v5) | Empirical Justification |
 | --- | --- | --- |
-| `backbones.LinearDialectAdapter` | residual multi-scale dilated Conv1D (`dilations=(1,2,4)`) | spans ~300 ms at 50 Hz while preserving pretrained features |
-| `aggregators.MultiStatisticPNAPooling` | order-preserving PNA + positional ROI with zero empty-mask std | all-False masks yield exact `0.0` across mean/std/max/min |
-| `aggregators.ProjectedROIPooling` | vectorized ROI + explicit `nn.Linear` | zero `LazyLinear` hazards |
-| `aggregators.TextCrossAttention` | padding-safe and empty-mask-safe cross-attention | post-softmax frame mask prevents `value.bias` leakage |
-| `heads.NormalizedRelativePositionalEncoding` | speaking-rate-invariant `[0, 1]` relative sinusoidal PE | gives Q-Former & pairwise cross-attention global order awareness |
-| `heads.LMBridgedHead` | leak-free Q-Former dual tower or zero-redundancy `pairwise` reranker | `latent_queries` only registered in `qformer` mode; single text pass in `pairwise` |
-| `domain_modules` | class-conditional spherical domain alignment, DANN sigmoid, overflow-safe mask-aware FSQ | avoids cross-class confusion in small batches & int64 overflow |
-| `criteria` | annealed Sub-Center CosFace, KL-zero SupCon, `1/B` & per-pair SigLIP, `pairwise_alignment` | honors `--contrastive-loss siglip` in both dual-tower & pairwise modes |
-| `data.SyntheticDialectWorld` | compositional `token_acoustic_bank`, OOD `allowed_domains` & OOV `allowed_classes` | enables genuine Zero-Shot OOV + OOD evaluation |
-| `train` | `decay`/`no_decay` AdamW, warmup cosine LR, `criterion.eval/train` sync, real multi-positive Recall@3/MRR | clean ablation configs + `configs/zero_shot_oov.yaml` |
+| `pipeline.extract_50hz_features` | Stage 1: 50 Hz frozen SSL speech feature interface | Decouples model from any single backbone (`WavLM-Large`, `Chinese-HuBERT-Large`, etc.) |
+| `backbones.LinearDialectAdapter` | Multi-scale dilated Conv1D (`dilations=(1, 2, 4)`) | Spans ~300 ms at 50 Hz; beats 0-conv ablation by +1.6–1.8 pp on dialect OOV |
+| `pipeline.RelativePhasePooling` | `[0, 1]` speaking-rate-invariant phase pooling | Consistently reduces `0.6x / 1.6x` speaking-rate drop vs absolute PE across all 3 tiers |
+| `heads.TextAnchoredHead` + `criteria.multi_positive_infonce` | Stage 2: Single default open-vocab dual-tower head & loss | Matches or beats `LMBridgedHead` (3.1× faster than `pairwise`) and `AudioToTextSpace` across 3 seeds |
+| `calibration.compute_dual_track_gate` | Stage 3: Built-in open-set dual-track confidence scorer | Combines top-1 cosine, pool Z-prominence, and top-1/top-5 margin |
+| `calibration.TestTimeDomainCalibrator` | Stage 4: Unlabeled test-time domain calibration | Aligns 50 Hz channel stats & conformal gate quantiles on unlabeled target background (FPR ≤ 2%) |
+| `dataset.RealAlignmentDataset` | Language-agnostic 50 Hz manifest loader & balanced sampler | Zero dialect/pinyin hardcoding; enforces 0 word/speaker overlap & 100% OOV unit coverage |
+| `gates.evaluate_release_gates` | Automated 4 Hard Release Gates (`Pass/Fail`) + AST audit | Verifies minimal core, real OOV/rate robustness, OOD dual-track calibration, and auditability |
+
+## Archived / Ablation-Only Modules (See `experiments/ARCHIVED.md`)
+
+- `heads.FixedSlotHead`, `heads.AudioToTextSpaceHead`, `heads.LMBridgedHead`
+- `criteria.CosFaceProjection`, `criteria.siglip_alignment`
+- `aggregators.MultiStatisticPNAPooling`
+- `domain_modules.DomainAdversarialHead`, `domain_modules.domain_alignment_loss`, `domain_modules.FSQBottleneck`
+- `data.SyntheticDialectWorld` (CPU unit-test fixture only)
+- `eval_routing_trap.simulate_track_mismatch` (diagnostic simulator)

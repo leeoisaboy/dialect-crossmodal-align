@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/leeoisaboy/dialect-crossmodal-align">
-    <img src="docs/assets/title_banner.zh.png" alt="Dialect-CrossModal-Align 跨模态方言对齐 · 零样本 OOV 与路由陷阱实验室" />
+    <img src="docs/assets/title_banner.zh.png" alt="Dialect-CrossModal-Align 给跨模态方言对齐做减法，把测试时域校准装进推理" />
   </a>
 </p>
 
@@ -9,22 +9,101 @@
   <a href="https://leeoisaboy.github.io/dialect-crossmodal-align/"><img alt="Live Lab" src="https://img.shields.io/badge/Live_Lab-CrossModal_Align_Lab-0071e3?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/disentangle-acoustic-print/"><img alt="Trilogy 1" src="https://img.shields.io/badge/三部曲_1-Acoustic_Print_Studio-2b9c94?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/audiollm-latent-kws/"><img alt="Trilogy 2" src="https://img.shields.io/badge/三部曲_2-Latent--KWS_Audit_Studio-7b6bb0?style=flat-square"></a>
-  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square">
+  <img alt="Release Gates" src="https://img.shields.io/badge/release_gates-4%2F4%20PASS-2ea44f?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-555555?style=flat-square">
 </p>
 
 <h1 align="center">Dialect-CrossModal-Align</h1>
 
-<p align="center"><strong>面向低资源方言开放词表检索的可训练跨模态对齐基准：把路由陷阱、零样本 OOV、语速弹性注意力与 FSQ 离散晶格全部做成看得见的白盒实验。</strong></p>
-
-
-## 方法流程图 · Architecture Pipeline
+<p align="center"><strong>给跨模态方言对齐做减法：用三套公开 50 Hz 语料实测剪掉多余对齐头与脆弱域正则，再把无标签测试时域校准装进默认推理链路。</strong></p>
 
 <p align="center">
-  <img src="docs/assets/pipeline_architecture.jpg" alt="Dialect-CrossModal-Align 跨模态零样本 OOV 与路由陷阱架构流程图" width="1000" />
+  <img src="docs/assets/pipeline_architecture.jpg" alt="图 1：Dialect-CrossModal-Align v5 四阶段最简收敛流水线与无标签测试时域校准架构" width="1000" />
+  <br />
+  <sub>图 1：Dialect-CrossModal-Align (v5) 四阶段最简开放词表流水线、三随机种子减法收敛与无标签测试时域校准架构</sub>
 </p>
 
-## 正在运行的交互实验室
+上一版原型把方言跨模态对齐做成了“4 种对齐头 + 3 套损失 + 3 套域正则 + 合成音节乐高世界”的实验台。机制在合成数据上跑得很漂亮，却始终悬着四个工程真问题：换成真实预训练 50 Hz 语音特征以后，重型交叉注意力到底比最简双向文本锚点强多少？类条件 CORAL、DANN 和 FSQ 离散晶格在真实未见方言上真有正向增益吗？绝对位置编码与相对位置编码在真实快慢语速缩放下差距有多大？以及，不靠人工加固定偏移，怎么在真实跨域负样本上把「AUROC 很高、双轨命中却塌方」的路由陷阱真正修好？
+
+这一版更新（v5），我按照和姊妹仓库 [AudioLLM-Latent-KWS](https://github.com/leeoisaboy/audiollm-latent-kws) 一致的路线推进：**先接入三套公开多方言与跨语种 50 Hz 真实语料摸清原版底牌，再两刀做三随机种子减法消融，最后把路由陷阱诊断升级为推理内置的双轨门控与无标签测试时域校准**。
+
+## 一、脱离合成世界，搭建三级公开 50 Hz 真实考卷
+
+为了彻底避免合成数据带来的失真乐观，新管线统一认标准 `50 Hz`（`20 ms/帧`）冻结语音特征（默认 `WavLM-Large` 16–20 层均值）和语言无关音素/IPA 序列，不写死任何单一语种逻辑。三套公开评测集全部通过 [`verify_dataset_invariants`](dialect_crossmodal_align/dataset.py) 自动断言校验：
+
+| 评测层级 | 公开语料与域划分 | 训练词 / 零样本 OOV 词 | 词表交集 | 训练 / 测试说话人 | 说话人交集 | OOV 构词单元覆盖率 | 实测帧率 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **T1 吴语** | MagicHub 沪语室内域（训练）+ WenetSpeech-Wu 野生多子方言（含未见 OOD 子域） | 600 / **100** | **0** | 349 / 870 | **0** | **100.0%** | 49.96 Hz |
+| **T2 跨汉语方言** | KeSpeech 八大方言（官话/冀鲁/胶辽/中原/江淮训练 → **西南/兰银/东北未见 OOD**） | 500 / **100** | **0** | 287 / 247 | **0** | **100.0%** | 49.97 Hz |
+| **T3 英文开放集** | LibriPhrase 英文短语 + 精确 IPA 音素（含难/易真实负例与远场信道偏移） | 180 / **100** | **0** | 630 / 404 | **0** | **100.0%** | 50.05 Hz |
+
+每套测试集还同步生成了经声学变速拉伸（`0.6×` 慢速拖音与 `1.6×` 快速连读）后重新提取 50 Hz 特征的测试切片，以及严格的开放集非关键词负例流。
+
+## 二、原版 6 套配置摸底：真数据一眼照出虚胖模块
+
+不动原版 `AlignmentModel` 结构，直接把仓库原有的 6 套 YAML 配置拉到 H20（GPU 0, fp32）上做全量摸底（完整原始数据见 [reports/ablation_summary.json](reports/ablation_summary.json)）：
+
+| 原版配置 | T1 吴语 100词 OOV R@5 | T2 八大方言 100词 OOV R@5 | T3 英文 IPA 100词 OOV R@5 | T1 单次训练 / 推理耗时 | 摸底诊断 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `fixed_slot` (闭集 CosFace) | **0.0%** | **0.0%** | **0.0%** | 17.96s / 0.102ms | 闭集命中 50.4%–97.5%，OOV 严格为 0%（零泄漏对照） |
+| `text_anchored` | **72.8%** | **92.2%** | **91.5%** | 19.33s / 0.129ms | 最轻双向文本锚点，三集全部大幅越过随机基线 |
+| `audio_to_text_space` | 72.0% | 88.9% | 88.6% | 19.53s / 0.130ms | 略逊于双向文本锚点 |
+| `lm_bridged` (`qformer`) | 74.9% | 91.5% | 87.3% | 21.86s / 0.137ms | 与最简头互有胜负，优势微弱 |
+| `domain_regularized` (CORAL+DANN+FSQ) | **55.2%** | **66.9%** | **57.8%** | 51.25s / 0.135ms | **全线掉点 18–34 个百分点，训练慢近 3 倍** |
+| `zero_shot_oov` (含全套域正则) | **54.8%** | **66.1%** | **66.7%** | 38.53s / 0.113ms | 同样被重型正则拖垮 |
+
+## 三、两刀架构减法：三随机种子消融砍掉所有负收益模块
+
+### 第一刀：收敛对齐头、损失函数、池化与位置编码（3 种子均值）
+
+| 消融维度 | 候选方案 | 三集宏平均 OOV R@5 | T1 吴语 | T2 八大方言 | T3 英文 | 单条推理 | 减法决策 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 对齐头 PK | **`TextAnchoredHead`** | **85.61%** | 73.0±0.2% | 91.4% | **92.5%** | **0.130 ms** | **保留为唯一默认头** |
+| 对齐头 PK | `LMBridgedHead (pairwise)` | 85.51% | 75.5±0.2% | 91.6% | 89.4% | 0.398 ms | 差 0.10 pp 但慢 **3.1×** → 归档 |
+| 对齐头 PK | `LMBridgedHead (qformer)` | 84.81% | 73.8±0.8% | 90.4% | 90.3% | 0.128 ms | 低于最简头 → 归档 |
+| 对齐头 PK | `AudioToTextSpaceHead` | 83.41% | 72.5±0.7% | 88.2% | 89.5% | 0.130 ms | 落后 2.20 pp → 归档 |
+| 损失函数 | **`Multi-Positive InfoNCE`** | **85.61%** | 73.0% | 91.4% | **92.5%** | 0.130 ms | **保留为唯一默认损失** |
+| 损失函数 | `SigLIP` / `CosFace Hybrid` | 85.08% / 83.97% | 74.9% / 73.5% | 92.3% / 91.4% | 88.1% / 87.1% | 0.124 ms | 无显著优势 → 归档 |
+| 膨胀感受野 | **`dilations=(1,2,4)` vs 无卷积** | 84.81% vs 84.02% | 73.8% vs 72.1% | 90.4% vs 88.6% | 90.3% vs 91.4% | 0.125 ms | 方言净增益 +1.7–1.8 pp → **保留** |
+| 语速位置编码 | **`RelativePhasePooling [0,1]` vs 绝对 PE** | **86.65%** | **75.6%** (`-33.2pp` vs `-34.6pp`) | **91.2%** (`-36.5pp` vs `-38.0pp`) | **93.1%** (`-32.7pp` vs `-35.3pp`) | **0.12 ms** | 三集 `0.6×/1.6×` 掉点全部小于绝对 PE → **保留** |
+
+### 第二刀：逐项剥离类条件 CORAL、DANN 与 FSQ（3 种子均值）
+
+在真实未见子方言与远场加噪域上，以“无任何域正则”为起点逐项叠加（完整负收益归档见 [experiments/ARCHIVED.md](experiments/ARCHIVED.md)）：
+
+| 域正则配置 | 三集宏平均 OOV R@5 | 未见方言 OOD R@5 | 远场加噪 OOD R@5 | FSQ 码本健康度 | 减法结论 |
+| --- | ---: | ---: | ---: | --- | --- |
+| **无域正则（v5 默认）** | **84.81%** | **81.56%** | **45.27%** | — | **保留**（冻结 50 Hz WavLM 特征自带域不变性） |
+| + 类条件 CORAL (`labels=classes`) | 84.63% (-0.18 pp) | 80.95% (-0.61 pp) | 44.55% (-0.72 pp) | — | **移出默认流** |
+| + DANN 梯度反转 | 84.89% (+0.08 pp) | 81.75% (+0.19 pp) | 45.28% (+0.01 pp) | — | **移出默认流**（增益可忽略） |
+| + FSQ 离散晶格 (`[5,5,5,5,5,5]`) | **77.51% (-7.30 pp)** | **78.13% (-3.43 pp)** | **38.90% (-6.37 pp)** | Perp **90.2** / Unique **95.8%** | **移出默认流**（码本很健康，但 6 维量化瓶颈直接损伤细粒度音素） |
+| + 全套叠加 (CORAL + DANN + FSQ) | **77.60% (-7.21 pp)** | **78.65% (-2.91 pp)** | **38.88% (-6.39 pp)** | Perp **83.7** / Unique **90.3%** | **移出默认流** |
+
+## 四、把路由陷阱诊断升级为内置双轨门控与无标签测试时域校准
+
+上一版 [`eval_routing_trap.py`](dialect_crossmodal_align/eval_routing_trap.py) 只用高斯随机数加固定偏移展示塌方现象。v5 直接将它升级为推理内置的 [`calibration.py`](dialect_crossmodal_align/calibration.py)：
+1. **内置开放集双轨门控（`compute_dual_track_gate`）**：融合 Top-1 余弦相似度、池内 Z-Prominence、Top-1/Top-5 裕度与信道能量，在同域开发负例上按 `target_fpr = 1%` 锁死门控墙。
+2. **轻量无标签测试时域校准（`TestTimeDomainCalibrator`）**：部署到未见方言或衰减信道时，只需收集一小段**无标签目标域背景音频**（零标注、零重训），先做 50 Hz 逐通道仿射对齐，再把目标域背景门控分对齐到同域负例均值方差并施加 99% 分位护栏。
+
+三随机种子真实跨域实测结果（完整数据见 [reports/convergence_gates.json](reports/convergence_gates.json)）：
+
+| 评测层级 | 同域双轨 R@5 (`FPR`) | 跨域未校准双轨 R@5 (`AUROC`) | **跨域无标签校准后双轨 R@5** | **校准后 OOD FPR** | **相对同域恢复率** |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **T1 吴语**（室内沪语 → 未见野生吴语+信道漂移） | 43.7% (`0.97%`) | **10.1%** (`0.897`) | **54.2%** (`0.943`) | **0.00%** | **125.0%** |
+| **T2 八大方言**（官话等 → 未见西南/兰银/东北+信道漂移） | 53.2% (`0.62%`) | **2.9%** (`0.850`) | **35.0%** (`0.892`) | **0.79%** | **66.8%** (12.1× 恢复) |
+| **T3 英文开放集**（LibriPhrase 信道漂移） | 98.9% (`2.92%`) | **34.6%** (`0.974`) | **96.2%** (`0.993`) | 2.31% | **97.3%** |
+| **三集宏平均（Gate 3 门禁口径）** | **65.3%** | **15.9%**（断崖塌方） | **61.8%**（`AUROC 0.943`） | **1.03% (≤ 2%)** | **94.7% (≥ 80%)** |
+
+## 五、四项硬性发布门禁全绿与交互实验室
+
+仓库内置 [`scripts/verify_release_gates.py`](scripts/verify_release_gates.py) 一键执行四门禁自动化验收（全部 **PASS**）：
+
+| 发布门禁 | 量化验收标准 | v5 实测结果 | 状态 |
+| --- | --- | --- | :---: |
+| **门禁 1：最简架构与零语种绑定** | 单默认头、零默认域正则、核心包 AST 扫描 0 方言/拼音硬编码 | 扫描 9 个核心文件，0 违规导入 | **PASS** |
+| **门禁 2：真实零样本 OOV 与语速弹性** | 三集 100 词 OOV R@5 ≥ 60%，且 0.6×/1.6× 相对 PE 掉点 < 绝对 PE | T1 **75.6%** / T2 **91.2%** / T3 **93.1%**；三集相对 PE 掉点全胜 | **PASS** |
+| **门禁 3：真实跨域双轨鲁棒性** | 未见域+真实负例下，校准后 FPR ≤ 2% 且恢复 ≥ 80% 同域双轨命中 | 宏平均 **FPR = 1.03%**，双轨命中由 15.9% 恢复至 **61.8% (94.7%)** | **PASS** |
+| **门禁 4：可复现与可审计** | 0 词表/说话人重叠、100% 单元覆盖、50 Hz 校验、Lab 数据包与单测全绿 | 34,138 切片全检通过 + 单元测试全绿 | **PASS** |
 
 <p align="center">
   <a href="https://leeoisaboy.github.io/dialect-crossmodal-align/">
@@ -32,150 +111,30 @@
   </a>
 </p>
 
-<p align="center"><strong><a href="https://leeoisaboy.github.io/dialect-crossmodal-align/">▶ 进入在线 CrossModal Align Lab</a></strong></p>
-
-这段动图直接还原了在线实验室的核心交互。页面采用无边框浅色长卷轴设计，零后端、纯本地运行，无需鼠标悬停也会随滚动自动演进：你可以手拖偏移滑块亲眼看 **AUROC 0.999 如何在跨域时暴跌到 4%**，用三段彩色音节乐高追踪 **从未见过的新词（Zero-Shot OOV）** 是如何被开放词表头拼出来的，拉伸语速对比绝对与归一化相对位置编码的相位咬合，并一键开启 **FSQ 离散晶格** 观察连续特征吸附与掩码安全码本统计。
-
-| 模块 | 页面里你能直观看到什么 | 对应代码实现 |
-| --- | --- | --- |
-| 01 路由陷阱模拟器 | 拖动 `gate_domain_shift (0.0 → -1.5)`，亲眼看 AUROC 稳在 0.999、Recall@5 稳在 100%，双轨命中却撞上红线墙塌方到 4% | `eval_routing_trap.py`、`reports/routing_trap.json` |
-| 02 音节乐高 × OOV 对决 | 声母/韵母/韵尾三段乐高连线溯源 + 四类对齐头零样本矩阵 PK + `CosFace` 3 子中心温度退火（10 → 40） | `data.py`、`heads.py`、`criteria.py` |
-| 03 时序白盒显微镜 | 语速拉杆 `0.5x ↔ 2.0x`：1/2/4 膨胀感受野（300 ms）、绝对 PE 跑偏 vs 相对 PE `[0, 1]`、Q-Former vs Pairwise | `backbones.py`、`heads.py` |
-| 04 域对齐 × FSQ 晶格 | 2D 单位球面（形状=词义，颜色=方言域）：无域正则 vs 边缘坍缩 vs 类条件+DANN + FSQ 吸附与掩码安全 Perplexity | `domain_modules.py` |
-
-## 为什么做这个项目
-
-在低资源方言语音检索里，很多团队从纯声学特征走到“训练一个轻量跨模态音文对齐头”时，最容易踩中四个隐蔽的坑：
-
-1. **分开报分掩盖了线上崩溃**：开发时把排序 `Recall@5` 和门控 `AUROC` 分开看，两个指标都在 99% 以上；一换方言口音或麦克风信道，锁死的门控阈值把 96% 的真样本全部拦在门外。
-2. **闭集分类头冒充“开放词表”**：传统分类头只认识训练集里的固定槽位，遇到用户新加的方言词根本没有锚点，零样本能力实际为 0。
-3. **方言一拖长音或快读连音，时序就对齐失败**：标准绝对位置编码按毫秒计数，语速一变后半段音节全跑偏；普通窄卷积又看不到完整的 300 ms 方言声调轮廓。
-4. **小批次域对齐反而把不同词挤成一团**：不按类别做域对齐（`labels=None`），在 batch 类别不均衡时会直接引发类间坍缩；开启 FSQ 量化后如果忘了屏蔽 padding 帧，码本困惑度与利用率会被大量零帧虚假拉低。
-
-这个仓库把上述四个问题全部拆成**可独立训练、可一键消融、带完整单元测试与浏览器白盒沙盒**的干净 PyTorch 基准（v4）。
-
-## 项目追问什么
-
-1. **双轨路由陷阱**：为什么门控 `AUROC = 0.999`、排序 `Recall@5 = 100%`，双轨联合命中率却会在域偏移下断崖跌落到 `4%`？
-2. **组合式零样本 OOV**：当训练词与测试词完全互斥、只共享底层音节时，四类跨模态头谁能真正泛化，谁会当场失效？
-3. **语速鲁棒与感受野**：多层膨胀卷积与 `[0, 1]` 归一化相对位置编码，怎样让跨模态注意力在 `0.5x` 慢读和 `2.0x` 快读下保持相位一致？
-4. **类条件域对齐**：相比直接拉拢全局边缘分布，按类别对齐均值与收缩协方差（配 DANN 梯度反转）如何避免小批次类间坍缩？
-5. **离散量化与码本健康**：引入 FSQ 离散晶格后，如何做到掩码安全统计、独立帧级量化且避免高维码本索引 `int64` 溢出？
-6. **训练/评估口径一致**：多子中心 `CosFaceProjection` 与 `LMBridgedHead` 在分布式训练与验证期怎样消除隐式间隔漂移与死参数？
-
-## 路由陷阱：为什么 AUROC 0.999 仍会暴跌到 4%？
-
-`dialect_crossmodal_align/eval_routing_trap.py` 构造了一个极简但极具警示意义的实证对照（完整报告见 [reports/routing_trap.json](reports/routing_trap.json)）：在开发集负样本上按 `target_fpr = 0.01` 锁死门控阈值 `threshold = 0.5862`；随后在测试集（50 正样本 + 200 负样本）上施加一个统一的跨域偏移 `gate_domain_shift = -1.0`（正负样本门控分同时左移 1.0，彼此相对排序不变）：
-
-| 评测维度 | 同域测试 (`shift = 0.0`) | 跨域偏移 (`shift = -1.0`) | 背后发生了什么 |
-| --- | ---: | ---: | --- |
-| 单轨排序 `Recall@5` | **100.0%** (50/50) | **100.0%** (50/50) | 排序网络本身完全没坏 |
-| 门控分类 `AUROC` | **0.9998** | **0.9990** | 正负相对顺序几乎不变，指标极具欺骗性 |
-| 门控 `FPR`（误报率） | 3.0% | 0.0% | 负样本更远离阈值墙 |
-| 门控 `TPR`（真样本通过率） | **100.0%** (50/50) | **4.0%** (2/50) | **96% 的正样本滑到了红色阈值墙左侧被直接拒掉** |
-| **双轨联合命中率** | **100.0%** (50/50) | **4.0%** (2/50) | **单看任何一项单轨指标都以为系统完美，上线直接瘫痪** |
-
-> 这就是为什么不能只盯单个 `AUROC` 或单个 `Recall@K`——跨域部署必须做**联合双轨评估**与**域自适应校准**。
-
-## 核心方法与架构
-
-<p align="center">
-  <img src="docs/assets/pipeline.zh.png" alt="Dialect-CrossModal-Align 五阶段白盒架构图" />
-</p>
-
-### 1. 组合式零样本 OOV 合成世界（`data.py`）
-`SyntheticDialectWorld` 维护一个共享音节声学库 `token_acoustic_bank`，每个词由 3 个有序音节（声母 Onset → 韵母 Nucleus → 韵尾 Coda）拼接生成。为了防止出现“测试词包含训练从未听过的孤立音素”这种不公平评测，前 `S` 个训练词采用**拉丁方前缀（Latin-Square Prefix）**，保证所有底层音节在每一个位置上都被训练词 100% 覆盖；随后再将 `train_classes: [0..7]` 与 `val_classes: [8..11]` 严格互斥切分，并用 `max_tokens = num_segments` 消除静默尾部 token 捷径。
-
-### 2. 四种跨模态对齐头对比（`heads.py` & `criteria.py`）
-
-| 对齐头 | 机制说明 | 零样本 OOV 能力 | 适用场景 |
-| --- | --- | --- | --- |
-| `FixedSlotHead` | 固定槽位闭集分类头，权重仅对应训练词表 | **无（0%）** | 闭集对照基线，用来反证开放词表必要性 |
-| `AudioToTextSpaceHead` | 冻结文本锚点空间，单向把声学特征映射进文本空间 | **支持** | 轻量、小样本下保护文本几何不被拉变形 |
-| `TextAnchoredHead` | 声学与文本锚点双向对齐，配合 `CosFaceProjection` 3 子中心与温度退火（`10.0 → 40.0`） | **强** | 推荐默认开放词表基线 |
-| `LMBridgedHead` | 注入 `[0, 1]` 归一化相对位置编码，支持 `Q-Former`（4 潜查询）与 `Pairwise`（音节-帧交叉注意力） | **最强** | 需要细粒度音节相位对齐与语速鲁棒的开放词表检索 |
-
-### 3. 膨胀感受野 × 语速弹性时序建模（`backbones.py` & `heads.py`）
-- **300 ms 膨胀感受野**：`LinearDialectAdapter` 采用三层膨胀卷积 `dilations=(1, 2, 4)`，在 50 Hz（20 ms/帧）声学输入下将有效感受野平滑扩展至 ~300 ms，刚好罩住一个完整方言音节的声调转折。
-- **语速不变相对位置编码**：`NormalizedRelativePositionalEncoding` 将每条语音的有效帧区间严格归一化到 $r \in [0, 1]$，无论说话人 `0.5x` 慢速拖音还是 `2.0x` 快速连读，正弦位置条纹都像橡皮筋一样紧贴声母/韵母/韵尾。
-- **双模式跨模态交互**：`qformer` 模式用 4 个 `latent_queries` 自动分工盯住不同相位；`pairwise` 模式单次编码复用文本序列、零死参数（不注册多余查询参数，消除 DDP `unused parameter` 报错），并完整支持 `siglip` / `infonce` / `multi_positive_infonce`。
-
-### 4. 类条件域对齐 × FSQ 离散晶格（`domain_modules.py`）
-- **类条件域对齐（`domain_alignment_loss(..., labels=classes)`）**：只在相同词类内部对齐不同方言域的一阶均值与收缩协方差，彻底规避小批次类别不均衡时普通边缘对齐导致的“跨词混叠坍缩”。
-- **DANN 梯度反转调度（`dann_alpha_schedule`）**：按 $\alpha(p) = \frac{2}{1 + e^{-\gamma p}} - 1$（默认 $\gamma = 10$）平滑递增对抗权重，前期先学稳语义，后期再剥离方言域偏移。
-- **掩码安全 FSQ 离散晶格（`FSQBottleneck`）**：支持可配置 `fsq_levels`（如 `[5, 5, 5, 5, 5, 5]`），为 `lm_bridged` 独立实例化 `sequence_fsq`；码本指标 `codebook_metrics(codes, mask=valid_mask)` 严格过滤 padding 帧，避免 Perplexity 与 Unique Code Ratio 被零填充帧虚假拉低，并对 $\prod L_i \ge 2^{62}$ 提供 `int64` 溢出元组哈希保护。
-
-## v4 版本的 4 项关键工程精修
-
-| 遗留隐患（v3） | 问题根因 | v4 精准修复 |
-| --- | --- | --- |
-| `CosFaceProjection` 训/评口径漂移 | 训练用平滑 LSE、评估用硬 max，且未显式切换模式 | `train.py` 显式调用 `criterion.train()/eval()`，训练期将 `sub_center_temp` 从 `10.0` 平滑退火至 `40.0` |
-| `LMBridgedHead` `pairwise` 死参数与重复编码 | 始终注册未使用的 `latent_queries`，且重复编码文本 | 仅 `qformer` 注册 `latent_queries`；`pairwise` 单次编码复用并补齐 `pairwise_siglip` |
-| FSQ 码本指标失真与高维溢出 | 未过滤 padding 帧且直接累乘 `int64` 索引 | 独立 `sequence_fsq` + `mask=valid_mask` 过滤 + $\ge 2^{62}$ 元组哈希保护 |
-| 优化器衰减错配与无 gallery 评测失真 | `log_scale`/`LayerNorm`/1D 参数进入 weight decay；无 gallery 时写死 Recall@3=Recall@1 | 拆分 `decay / no_decay` 分组 + Warmup Cosine；统一用 `_multi_positive_ranking_metrics` 计算真实 Recall@1/3 与 MRR |
-
-## 6 套即跑即用的实验配置
-
-| 配置文件 | 测试重点 | 一键运行命令 |
-| --- | --- | --- |
-| `configs/fixed_slot.yaml` | 闭集槽位对照基线 | `python -m dialect_crossmodal_align.train --config configs/fixed_slot.yaml` |
-| `configs/text_anchored.yaml` | 文本锚点开放词表基线 | `python -m dialect_crossmodal_align.train --config configs/text_anchored.yaml` |
-| `configs/audio_to_text_space.yaml` | 冻结文本空间单向投影 | `python -m dialect_crossmodal_align.train --config configs/audio_to_text_space.yaml` |
-| `configs/lm_bridged.yaml` | 相对位置 + Q-Former / Pairwise 跨模态交互 | `python -m dialect_crossmodal_align.train --config configs/lm_bridged.yaml` |
-| `configs/zero_shot_oov.yaml` | 12 类互斥切分（训练 0–7 / 零样本 OOV 8–11） | `python -m dialect_crossmodal_align.train --config configs/zero_shot_oov.yaml` |
-| `configs/domain_regularized.yaml` | 3 域 OOD + 类条件对齐 + DANN + FSQ 晶格 | `python -m dialect_crossmodal_align.train --config configs/domain_regularized.yaml` |
+<p align="center"><strong><a href="https://leeoisaboy.github.io/dialect-crossmodal-align/">▶ 进入在线 CrossModal Align Lab（零后端纯本地）</a></strong></p>
 
 ## 快速开始
 
-### 1. 本地打开 CrossModal Align Lab（零后端依赖）
-```bash
-python -m http.server 8767 --directory studio
-```
-浏览器打开 `http://127.0.0.1:8767` 即可体验全部四个交互模块。
-
-### 2. 安装并运行 PyTorch 基准与单元测试
 ```bash
 git clone https://github.com/leeoisaboy/dialect-crossmodal-align.git
 cd dialect-crossmodal-align
-python -m venv .venv
 python -m pip install -e . pytest
 
-pytest
-python -m dialect_crossmodal_align.eval_routing_trap --output reports/routing_trap.json
-python -m dialect_crossmodal_align.train --config configs/zero_shot_oov.yaml
-```
+# 1. 运行全部单元测试（含 v5 四阶段主干、真实 50 Hz 契约校验与 AST 零语种依赖审计）
+pytest -q
 
-## 代码结构
+# 2. 一键验收四项硬性发布门禁
+python scripts/verify_release_gates.py
 
-```text
-dialect-crossmodal-align/
-├── dialect_crossmodal_align/
-│   ├── data.py                  SyntheticDialectWorld 组合式零样本 OOV 合成世界
-│   ├── backbones.py             LinearDialectAdapter（dilations=(1,2,4) 覆盖 300 ms）
-│   ├── aggregators.py           掩码安全 MultiStatisticPNAPooling
-│   ├── heads.py                 FixedSlot / TextAnchored / AudioToTextSpace / LMBridged
-│   ├── criteria.py              CosFaceProjection 温度退火、SigLIP、Multi-Positive InfoNCE
-│   ├── domain_modules.py        类条件域对齐、DANN 调度、FSQBottleneck 与掩码安全码本统计
-│   ├── model.py                 统一跨模态对齐模型装配
-│   ├── train.py                 decay/no_decay 优化器、Warmup Cosine 与统一排序评测
-│   └── eval_routing_trap.py     双轨路由陷阱模拟器（复现 AUROC 0.999 → 4%）
-├── configs/                     6 套即跑即用的消融 YAML 配置
-├── studio/                      零后端 CrossModal Align Lab 静态前端（GitHub Pages）
-├── scripts/
-│   ├── export_lab_bundle.py     导出 studio/data/lab_bundle.json
-│   ├── make_assets.py           生成小狗 LOGO、中英标题图与五阶段架构图
-│   └── make_lab_demo_gif.py     生成 README 动态演示 GIF
-├── docs/                        数据契约、模块地图与视觉资产
-├── reports/routing_trap.json    路由陷阱实测报告
-└── tests/test_align.py          完整单元测试
+# 3. 导出最新白盒数据并本地打开 CrossModal Align Lab
+python scripts/export_lab_bundle.py
+python -m http.server 8767 --directory studio
 ```
 
 ## 白盒语音检索三部曲
 
-三个仓库共用同一套浅色白盒实验台美学与「不藏失败、用实证说话」的工程哲学，从不同切面回答低资源方言语音检索问题：
-
 | 项目 | 核心定位 | 底层形态 | 在线交互界面 |
 | --- | --- | --- | --- |
 | **[disentangle-acoustic-print](https://github.com/leeoisaboy/disentangle-acoustic-print)** | 声学几何解耦与四层指纹示波器 | 纯 NumPy · 免训练 · 支持 60 FPS 实时麦克风 | [Acoustic Print Studio ↗](https://leeoisaboy.github.io/disentangle-acoustic-print/) |
-| **[audiollm-latent-kws](https://github.com/leeoisaboy/audiollm-latent-kws)** | 冻结 Audio-LLM 两阶段检索与防泄漏审计台 | 冻结大模型 · 80ms/40ms 双网格 · 7 项公开阴性实验 | [Latent-KWS Audit Studio ↗](https://leeoisaboy.github.io/audiollm-latent-kws/) |
-| **[dialect-crossmodal-align](https://github.com/leeoisaboy/dialect-crossmodal-align)** | 可训练跨模态对齐与路由陷阱实验室 | PyTorch · 组合式零样本 OOV · 类条件 FSQ 晶格 | [CrossModal Align Lab ↗](https://leeoisaboy.github.io/dialect-crossmodal-align/) |
+| **[audiollm-latent-kws](https://github.com/leeoisaboy/audiollm-latent-kws)** | 冻结 Audio-LLM 两阶段检索与防泄漏审计台 | 冻结大模型 · 0.00% 泄题 · 7 项阴性归档 | [Latent-KWS Audit Studio ↗](https://leeoisaboy.github.io/audiollm-latent-kws/) |
+| **[dialect-crossmodal-align](https://github.com/leeoisaboy/dialect-crossmodal-align)** | 最简四阶段跨模态对齐与无标签测试时域校准 | PyTorch · 50 Hz 公开实测 · 四门禁全绿 | [CrossModal Align Lab ↗](https://leeoisaboy.github.io/dialect-crossmodal-align/) |

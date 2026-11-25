@@ -7,6 +7,8 @@ dist/
 *.egg-info/
 reports/
 !reports/routing_trap.json
+!reports/convergence_gates.json
+!reports/ablation_summary.json
 _archived_v4_0/
 checkpoints/
 data/private/

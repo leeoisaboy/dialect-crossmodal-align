@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dialect-crossmodal-align"
-version = "0.4.0"
-description = "Modular benchmark for open-vocabulary zero-shot dialect audio-text alignment and domain adaptation (v4)"
+version = "0.5.0"
+description = "Minimal, real-data-verified cross-modal speech-text alignment with zero-shot OOV retrieval and unlabeled test-time domain calibration (v5)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

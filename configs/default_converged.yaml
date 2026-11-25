@@ -1,0 +1,24 @@
+# Converged Default Configuration (v5)
+# Locked via 3-seed real-data ablations across Shanghainese/WenetSpeech-Wu (T1),
+# KeSpeech 8-Dialect (T2), and LibriPhrase English+IPA (T3).
+# Single-pass dual-tower architecture with zero domain regularizers and built-in
+# dual-track gating + unlabeled test-time domain calibration.
+
+head: text_anchored
+aggregator: relative_phase
+pe_mode: relative
+adapter_dilations: [1, 2, 4]
+criterion: contrastive
+contrastive_loss: multi_positive_infonce
+input_dim: 1024
+model_dim: 256
+dropout: 0.1
+use_domain_adversarial: false
+use_fsq: false
+coral_weight: 0.0
+epochs: 40
+steps_per_epoch: 32
+batch_size: 96
+learning_rate: 0.001
+weight_decay: 0.01
+target_fpr: 0.01

@@ -24,7 +24,7 @@ class AlignmentModel(nn.Module):
         vocabulary_size: int,
         class_count: int,
         head: str = "text_anchored",
-        aggregator: str = "pna_roi",
+        aggregator: str = "relative_phase",
         domain_count: int = 0,
         use_domain_adversarial: bool = False,
         use_fsq: bool = False,
@@ -32,6 +32,7 @@ class AlignmentModel(nn.Module):
         domain_target: str = "query",
         lm_interaction_mode: str = "qformer",
         adapter_dilations: Sequence[int] = (1, 2, 4),
+        pe_mode: str = "relative",
         dropout: float = 0.1,
     ):
         super().__init__()
@@ -46,8 +47,12 @@ class AlignmentModel(nn.Module):
             dropout=dropout,
             dilations=adapter_dilations,
         )
-        if aggregator == "mean":
-            self.aggregator: nn.Module = MeanPooling()
+        if aggregator == "relative_phase":
+            from .pipeline import RelativePhasePooling
+
+            self.aggregator: nn.Module = RelativePhasePooling(model_dim, num_phases=4, pe_mode=pe_mode)
+        elif aggregator == "mean":
+            self.aggregator = MeanPooling()
         elif aggregator == "roi":
             self.aggregator = ProjectedROIPooling(model_dim, bins=4, input_dim=model_dim)
         elif aggregator == "pna_roi":
@@ -167,7 +172,7 @@ def build_alignment_model(config: dict[str, Any]) -> AlignmentModel:
         vocabulary_size=int(config["vocabulary_size"]),
         class_count=int(config["class_count"]),
         head=str(config.get("head", "text_anchored")),
-        aggregator=str(config.get("aggregator", "pna_roi")),
+        aggregator=str(config.get("aggregator", "relative_phase")),
         domain_count=domain_count,
         use_domain_adversarial=use_domain_adversarial,
         use_fsq=bool(config.get("use_fsq", False)),
@@ -175,5 +180,6 @@ def build_alignment_model(config: dict[str, Any]) -> AlignmentModel:
         domain_target=str(config.get("domain_target", "query")),
         lm_interaction_mode=str(config.get("lm_interaction_mode", "qformer")),
         adapter_dilations=adapter_dilations,
+        pe_mode=str(config.get("pe_mode", "relative")),
         dropout=float(config.get("dropout", 0.1)),
     )

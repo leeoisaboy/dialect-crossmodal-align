@@ -236,3 +236,131 @@ def test_routing_trap_uniform_shift():
     assert report["shifted_domain"]["gate_auroc"] > 0.95
     assert report["shifted_domain"]["recall_at_k"] > 0.8
     assert report["shifted_domain"]["dual_track_recall_at_k"] < 0.2
+
+
+def test_converged_4stage_pipeline_and_relative_phase_pooling():
+    from dialect_crossmodal_align import (
+        ConvergedCrossModalAligner,
+        RelativePhasePooling,
+        TestTimeDomainCalibrator,
+        compute_dual_track_gate,
+        extract_50hz_features,
+        retrieve_and_gate,
+    )
+
+    torch.manual_seed(42)
+    # Stage 1: 50 Hz feature contract
+    raw_frames = torch.randn(6, 20, 32)
+    frames, fmask = extract_50hz_features(raw_frames)
+    assert frames.shape == (6, 20, 32)
+    assert fmask.shape == (6, 20) and fmask.all()
+
+    # RelativePhasePooling must be order-sensitive (forward != reversed)
+    pool = RelativePhasePooling(model_dim=16, num_phases=4, pe_mode="relative")
+    pool.eval()
+    seq = torch.cat([torch.full((1, 5, 16), 2.0), torch.full((1, 5, 16), -2.0)], dim=1)
+    m = torch.ones((1, 10), dtype=torch.bool)
+    assert (pool(seq, m).pooled - pool(torch.flip(seq, [1]), m).pooled).abs().max().item() > 1e-3
+
+    # Stage 2 -> 3 -> 4: Converged aligner + built-in dual-track gate + unlabeled calibration
+    model = ConvergedCrossModalAligner(input_dim=32, model_dim=16, vocabulary_size=24)
+    gal_tok = torch.randint(1, 24, (10, 4))
+    gal_mask = torch.ones((10, 4), dtype=torch.bool)
+
+    out = model(frames, fmask, gal_tok[:6], gal_mask[:6])
+    assert out["query"].shape == (6, 16)
+    assert out["anchor"].shape == (6, 16)
+
+    # Fit unlabeled source reference and test recovery under severe channel gain shift
+    cal = TestTimeDomainCalibrator(target_fpr=0.05)
+    dev_bg = torch.randn(40, 18, 32)
+    dev_mask = torch.ones((40, 18), dtype=torch.bool)
+    with torch.inference_mode():
+        dev_sims = model.encode_audio(dev_bg, dev_mask) @ model.encode_text(gal_tok, gal_mask).T
+    dev_gate = compute_dual_track_gate(dev_sims, dev_bg, dev_mask)
+    thr = cal.fit_source_reference(dev_bg, dev_mask, dev_gate)
+    assert isinstance(thr, float)
+
+    shifted_frames = frames * 0.35 - 0.5
+    shifted_bg = dev_bg * 0.35 - 0.5
+    res = retrieve_and_gate(
+        model,
+        shifted_frames,
+        fmask,
+        gal_tok,
+        gal_mask,
+        top_k=5,
+        calibrator=cal,
+        unlabeled_bg_frames=shifted_bg,
+        unlabeled_bg_mask=dev_mask,
+    )
+    assert res.top_indices.shape == (6, 5)
+    assert res.gate_scores.shape == (6,)
+    assert res.accepted.shape == (6,)
+
+
+def test_real_alignment_dataset_contract_and_invariants(tmp_path):
+    import json
+    import numpy as np
+    from dialect_crossmodal_align import RealAlignmentDataset, verify_dataset_invariants
+
+    # Create minimal synthetic 50 Hz tier adhering to the exact public manifest contract
+    rng = np.random.default_rng(7)
+    clips_feats = [rng.standard_normal((25, 16)).astype(np.float16) for _ in range(4)]
+    offsets = np.array([0, 25, 50, 75, 100], dtype=np.int64)
+    np.save(tmp_path / "features_50hz.fp16.npy", np.concatenate(clips_feats, axis=0))
+    np.save(tmp_path / "feature_offsets.int64.npy", offsets)
+
+    manifest = [
+        {"idx": 0, "clip_id": "c0", "split": "train", "word": "ab", "class_id": 0, "is_oov": False, "is_negative": False, "units": ["a", "b"], "token_ids": [1, 2], "speaker": "s1", "domain": 0, "duration_s": 0.50, "num_frames": 25},
+        {"idx": 1, "clip_id": "c1", "split": "train", "word": "cd", "class_id": 1, "is_oov": False, "is_negative": False, "units": ["c", "d"], "token_ids": [3, 4], "speaker": "s1", "domain": 1, "duration_s": 0.50, "num_frames": 25},
+        {"idx": 2, "clip_id": "c2", "split": "test_oov", "word": "ad", "class_id": 2, "is_oov": True, "is_negative": False, "units": ["a", "d"], "token_ids": [1, 4], "speaker": "s2", "domain": 2, "duration_s": 0.50, "num_frames": 25},
+        {"idx": 3, "clip_id": "c3", "split": "test_neg", "word": "xx", "class_id": -1, "is_oov": True, "is_negative": True, "units": ["b", "c"], "token_ids": [2, 3], "speaker": "s2", "domain": 2, "duration_s": 0.50, "num_frames": 25},
+    ]
+    # Add slightly different duration on clip 3 so differential stride slope is well-defined at 50 Hz
+    clips_feats[3] = rng.standard_normal((50, 16)).astype(np.float16)
+    offsets = np.array([0, 25, 50, 75, 125], dtype=np.int64)
+    np.save(tmp_path / "features_50hz.fp16.npy", np.concatenate(clips_feats, axis=0))
+    np.save(tmp_path / "feature_offsets.int64.npy", offsets)
+    manifest[3]["duration_s"] = 1.00
+    manifest[3]["num_frames"] = 50
+
+    with open(tmp_path / "manifest.jsonl", "w", encoding="utf-8") as fp:
+        for r in manifest:
+            fp.write(json.dumps(r) + "\n")
+    meta = {
+        "tier": "unit_test_tier",
+        "feature_dim": 16,
+        "vocabulary_size": 5,
+        "n_train_words": 2,
+        "n_oov_words": 1,
+        "unit_vocab": {"<pad>": 0, "a": 1, "b": 2, "c": 3, "d": 4},
+        "word_gallery": [
+            {"class_id": 0, "word": "ab", "is_oov": False, "units": ["a", "b"], "token_ids": [1, 2]},
+            {"class_id": 1, "word": "cd", "is_oov": False, "units": ["c", "d"], "token_ids": [3, 4]},
+            {"class_id": 2, "word": "ad", "is_oov": True, "units": ["a", "d"], "token_ids": [1, 4]},
+        ],
+    }
+    (tmp_path / "metadata.json").write_text(json.dumps(meta), encoding="utf-8")
+
+    inv = verify_dataset_invariants(tmp_path)
+    assert inv["passed"] is True
+    assert inv["word_overlap"] == 0
+    assert inv["speaker_overlap"] == 0
+    assert inv["oov_unit_coverage"] == 1.0
+
+    ds = RealAlignmentDataset(tmp_path)
+    import random
+    batch = ds.sample_balanced_batch(batch_size=4, rng=random.Random(0), multi_pos_k=2)
+    assert batch["frames"].shape[0] == 4
+    assert batch["frames"].shape[-1] == 16
+
+
+def test_zero_dialect_coupling_ast_audit():
+    from pathlib import Path
+    from dialect_crossmodal_align.gates import audit_core_zero_dialect_coupling
+
+    pkg_dir = Path(__file__).resolve().parents[1] / "dialect_crossmodal_align"
+    audit = audit_core_zero_dialect_coupling(pkg_dir)
+    assert audit["passed"] is True
+    assert audit["violations"] == []

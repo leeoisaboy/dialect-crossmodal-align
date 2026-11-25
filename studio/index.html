@@ -38,7 +38,7 @@
       <div class="topbar__meta">
         <span class="live-pill">
           <span class="status-dot is-live" aria-hidden="true"></span>
-          <span>v4 白盒沙盒</span>
+          <span>v5 公开实测白盒</span>
         </span>
         <a class="compact-button" href="https://github.com/leeoisaboy/dialect-crossmodal-align" target="_blank" rel="noopener">GitHub ↗</a>
       </div>
@@ -48,37 +48,37 @@
   <main class="story">
     <section class="hero hero--story" aria-labelledby="hero-title">
       <div class="hero__center">
-        <p class="eyebrow">Cross-modal dialect alignment lab</p>
-        <h1 id="hero-title">高分未必真安全，<br /><span>对齐才能跨方言。</span></h1>
+        <p class="eyebrow">Cross-modal dialect alignment lab · v5 converged</p>
+        <h1 id="hero-title">给对齐头做减法，<br /><span>把校准装进推理。</span></h1>
         <p class="hero__lede">
-          把 PyTorch 模块里的数学机制变成肉眼可见的动态实验：亲眼见证 AUROC 0.999 下的 4% 路由塌方、音节乐高零样本 OOV 对决、语速弹性注意力与类条件 FSQ 离散晶格。
+          在沪语+野生吴语、KeSpeech 八大方言与 LibriPhrase 英文三套公开 50 Hz 语料上完成全量三随机种子减法消融：砍掉冗余对齐头、CosFace 与 CORAL/DANN/FSQ 域正则，收拢为单次前向四阶段主干，用无标签测试时域校准把跨域双轨命中从 15.9% 拉回 61.8%（FPR 1.03%）。
         </p>
 
         <div class="hero__actions">
           <a href="#sec-trap" class="btn btn--primary">
-            <span>进入路由陷阱模拟器</span>
+            <span>进入路由陷阱与域校准</span>
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12m0 0-4.5-4.5M10 16l4.5-4.5" /></svg>
           </a>
-          <a href="#sec-oov" class="btn btn--secondary">音节乐高 OOV 对决</a>
-          <a href="#sec-domain" class="btn btn--quiet">FSQ 离散晶格 ↓</a>
+          <a href="#sec-oov" class="btn btn--secondary">100 词零样本 OOV 实测</a>
+          <a href="#sec-domain" class="btn btn--quiet">域正则阴性消融 ↓</a>
         </div>
 
         <div class="kpi-strip" aria-label="核心实验指标">
           <div class="kpi-item">
-            <span class="kpi-item__num kpi-item__num--coral">0.999 → 4%</span>
-            <span class="kpi-item__label">路由陷阱假高分塌方</span>
+            <span class="kpi-item__num kpi-item__num--coral">15.9% → 61.8%</span>
+            <span class="kpi-item__label">无标签测试时域校准恢复 (FPR 1.03%)</span>
           </div>
           <div class="kpi-item">
-            <span class="kpi-item__num">93.8%</span>
-            <span class="kpi-item__label">组合式零样本 OOV 命中</span>
+            <span class="kpi-item__num">75.6%–93.1%</span>
+            <span class="kpi-item__label">三集 100 词零样本 OOV R@5</span>
           </div>
           <div class="kpi-item">
-            <span class="kpi-item__num kpi-item__num--teal">300 ms</span>
-            <span class="kpi-item__label">1/2/4 膨胀感受野覆盖</span>
+            <span class="kpi-item__num kpi-item__num--teal">50 Hz · 300 ms</span>
+            <span class="kpi-item__label">1/2/4 膨胀 + 相对相位池化</span>
           </div>
           <div class="kpi-item">
-            <span class="kpi-item__num">FSQ 5⁶</span>
-            <span class="kpi-item__label">掩码安全离散晶格</span>
+            <span class="kpi-item__num">4 / 4 PASS</span>
+            <span class="kpi-item__label">四项硬性发布门禁全绿</span>
           </div>
         </div>
 
