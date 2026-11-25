@@ -7,6 +7,7 @@
 <p align="center">
   <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-README-d73a49?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/dialect-crossmodal-align/"><img alt="Live Lab" src="https://img.shields.io/badge/Live_Lab-CrossModal_Align_Lab-0071e3?style=flat-square"></a>
+  <a href="https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench"><img alt="HF Dataset" src="https://img.shields.io/badge/HuggingFace-50Hz_3--Tier_Bench-ff9d00?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/disentangle-acoustic-print/"><img alt="Trilogy 1" src="https://img.shields.io/badge/Trilogy_1-Acoustic_Print_Studio-2b9c94?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/audiollm-latent-kws/"><img alt="Trilogy 2" src="https://img.shields.io/badge/Trilogy_2-Latent--KWS_Audit_Studio-7b6bb0?style=flat-square"></a>
   <img alt="Release Gates" src="https://img.shields.io/badge/release_gates-4%2F4%20PASS-2ea44f?style=flat-square">
@@ -16,6 +17,10 @@
 <h1 align="center">Dialect-CrossModal-Align</h1>
 
 <p align="center"><strong>Subtracting redundant heads and fragile regularizers from cross-modal speech-text alignment on real 50 Hz public corpora—and building unlabeled test-time domain calibration directly into inference.</strong></p>
+
+<p align="center">
+  <strong>🤗 Public 3-Tier 50 Hz Benchmark Dataset (34,138 clips · T1 Wu · T2 KeSpeech · T3 LibriPhrase): <a href="https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench">Leeoisaboy/dialect-crossmodal-align-bench ↗</a></strong>
+</p>
 
 <p align="center">
   <img src="docs/assets/pipeline_architecture.jpg" alt="Figure 1: Dialect-CrossModal-Align v5 converged 4-stage open-vocab pipeline and unlabeled test-time calibration" width="1000" />

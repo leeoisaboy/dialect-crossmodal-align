@@ -7,6 +7,7 @@
 <p align="center">
   <a href="README.en.md"><img alt="English" src="https://img.shields.io/badge/English-README-2f81f7?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/dialect-crossmodal-align/"><img alt="Live Lab" src="https://img.shields.io/badge/Live_Lab-CrossModal_Align_Lab-0071e3?style=flat-square"></a>
+  <a href="https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench"><img alt="HF Dataset" src="https://img.shields.io/badge/HuggingFace-50Hz_3--Tier_Bench-ff9d00?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/disentangle-acoustic-print/"><img alt="Trilogy 1" src="https://img.shields.io/badge/三部曲_1-Acoustic_Print_Studio-2b9c94?style=flat-square"></a>
   <a href="https://leeoisaboy.github.io/audiollm-latent-kws/"><img alt="Trilogy 2" src="https://img.shields.io/badge/三部曲_2-Latent--KWS_Audit_Studio-7b6bb0?style=flat-square"></a>
   <img alt="Release Gates" src="https://img.shields.io/badge/release_gates-4%2F4%20PASS-2ea44f?style=flat-square">
@@ -16,6 +17,10 @@
 <h1 align="center">Dialect-CrossModal-Align</h1>
 
 <p align="center"><strong>给跨模态方言对齐做减法：用三套公开 50 Hz 语料实测剪掉多余对齐头与脆弱域正则，再把无标签测试时域校准装进默认推理链路。</strong></p>
+
+<p align="center">
+  <strong>🤗 公开三级 50 Hz 评测数据集（34,138 条切片 · T1 沪语/吴语 · T2 八大方言 · T3 英文 IPA）：<a href="https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench">Leeoisaboy/dialect-crossmodal-align-bench ↗</a></strong>
+</p>
 
 <p align="center">
   <img src="docs/assets/pipeline_architecture.jpg" alt="图 1：Dialect-CrossModal-Align v5 四阶段最简收敛流水线与无标签测试时域校准架构" width="1000" />
