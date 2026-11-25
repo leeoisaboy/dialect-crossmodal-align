@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/leeoisaboy/dialect-crossmodal-align">
-    <img src="docs/assets/title_banner.en.png" alt="Dialect-CrossModal-Align — Converged 4-stage cross-modal alignment & unlabeled test-time calibration" />
+    <img src="docs/assets/title_banner.en.png" alt="Dialect-CrossModal-Align — Spot unseen dialect words without recording audio via two-cut subtractive alignment" />
   </a>
 </p>
 
@@ -16,69 +16,104 @@
 
 <h1 align="center">Dialect-CrossModal-Align</h1>
 
-<p align="center"><strong>Subtracting redundant heads and fragile regularizers from cross-modal speech-text alignment on real 50 Hz public corpora—and building unlabeled test-time domain calibration directly into inference.</strong></p>
+<p align="center"><strong>Spot unseen dialect words without recording a single sample—two subtractive cuts and label-free test-time calibration on real 50 Hz speech.</strong></p>
 
 <p align="center">
   <strong>🤗 Public 3-Tier 50 Hz Benchmark Dataset (34,138 clips · T1 Wu · T2 KeSpeech · T3 LibriPhrase): <a href="https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench">Leeoisaboy/dialect-crossmodal-align-bench ↗</a></strong>
 </p>
 
 <p align="center">
-  <img src="docs/assets/pipeline_architecture.jpg" alt="Figure 1: Dialect-CrossModal-Align v5 converged 4-stage open-vocab pipeline and unlabeled test-time calibration" width="1000" />
+  <img src="docs/assets/pipeline_architecture.jpg" alt="Figure 1: Dialect-CrossModal-Align v5 converged 4-stage open-vocab pipeline and label-free test-time calibration" width="1000" />
   <br />
-  <sub>Figure 1: Dialect-CrossModal-Align (v5) converged 4-stage open-vocabulary pipeline, 3-seed subtractive pruning, and unlabeled test-time domain calibration</sub>
+  <sub>Figure 1: Dialect-CrossModal-Align (v5) converged 4-stage open-vocabulary pipeline, 3-seed subtractive pruning, and label-free test-time domain calibration</sub>
 </p>
 
-Our earlier v4 prototype served as an ablation testbed with four alignment heads, three losses, three domain regularizers, and a synthetic syllable world. In **v5**, we follow the same empirical convergence discipline as [AudioLLM-Latent-KWS](https://github.com/leeoisaboy/audiollm-latent-kws): **benchmark the full prototype on real 50 Hz public multi-dialect & cross-lingual speech first, prune every redundant or negative-gain module across 3 random seeds, and upgrade the routing-trap simulator into built-in open-set dual-track gating with unlabeled test-time domain calibration**.
+Following [AudioLLM-Latent-KWS](https://github.com/leeoisaboy/audiollm-latent-kws), this is the third open-source pillar of our white-box speech retrieval trilogy—**[Dialect-CrossModal-Align](https://github.com/leeoisaboy/dialect-crossmodal-align)**.
 
-## 1. Three-Tier Public 50 Hz Real Speech Benchmark
+While AudioLLM-Latent-KWS asks a user to record a new phrase once or twice as an audio template, Dialect-CrossModal-Align goes one step further: **no enrollment recording is required at all**. Write an unseen word as a universal phonetic or IPA sequence, and the aligner retrieves it directly from real dialect audio (**Zero-Shot Out-of-Vocabulary cross-modal retrieval**)—just like sounding out an unfamiliar word from familiar phonetic building blocks.
 
-All tiers use frozen **50 Hz** (`20 ms/frame`) `WavLM-Large` representations paired with language-agnostic phonetic/IPA unit sequences, verified strictly by [`verify_dataset_invariants`](dialect_crossmodal_align/dataset.py):
+Our earlier v4 prototype lived inside a synthetic syllable world stacked with 4 alignment heads, 3 losses, and 3 domain regularizers. In **v5**, we leave the synthetic sandbox behind, benchmark all 6 legacy configs on three public **50 Hz** multi-dialect & cross-lingual corpora, make two ruthless 3-seed subtractive cuts, and build **label-free test-time domain calibration** directly into inference.
 
-| Tier | Public Corpora & Domain Split | Train / Zero-Shot OOV Words | Word Overlap | Train / Test Speakers | Speaker Overlap | OOV Unit Coverage | Frame Rate |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| **T1 Wu** | MagicHub Shanghainese (clean indoor) + WenetSpeech-Wu (wild multi-subdialect OOD) | 600 / **100** | **0** | 349 / 870 | **0** | **100.0%** | 49.96 Hz |
-| **T2 Chinese Dialects** | KeSpeech 8 dialects (Mandarin/Ji-Lu/Jiao-Liao/Zhongyuan/Jiang-Huai → **unseen Southwestern/Lan-Yin/Northeastern OOD**) | 500 / **100** | **0** | 287 / 247 | **0** | **100.0%** | 49.97 Hz |
-| **T3 English IPA** | LibriPhrase 1–2 word phrases + exact IPA phones (real hard/easy negatives + channel shift) | 180 / **100** | **0** | 630 / 404 | **0** | **100.0%** | 50.05 Hz |
+## 1. Leaving the Synthetic World: Three Public 50 Hz Benchmarks
 
-## 2. Two-Stage 3-Seed Subtractive Convergence (H20 GPU 0)
+All tiers run on frozen **50 Hz** (`20 ms/frame`) `WavLM-Large` representations (layers 16–20 mean) paired with language-agnostic phoneme/IPA sequences. Every tier is published at **[Leeoisaboy/dialect-crossmodal-align-bench](https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench)** and verified by [`verify_dataset_invariants`](dialect_crossmodal_align/dataset.py) for zero word overlap, zero speaker overlap, 100% OOV unit coverage, `0.6x / 1.6x` speaking-rate stress splits, and real open-set negatives:
 
-Full raw tables are committed in [reports/ablation_summary.json](reports/ablation_summary.json) and falsified branches are documented in [experiments/ARCHIVED.md](experiments/ARCHIVED.md):
+| Tier | Public Corpora & Cross-Domain Split | Train / OOV Words | Train / Test Speakers | Word & Speaker Overlap | Frame Rate |
+| --- | --- | ---: | ---: | ---: | ---: |
+| **T1 Wu** | MagicHub Shanghainese (indoor) → WenetSpeech-Wu (wild multi-subdialect OOD) | 600 / **100** | 349 / 870 | **0 / 0** | 49.96 Hz |
+| **T2 Chinese Dialects** | KeSpeech 5 dialects (train) → Unseen Southwestern / Lan-Yin / Northeastern (OOD) | 500 / **100** | 287 / 247 | **0 / 0** | 49.97 Hz |
+| **T3 English IPA** | LibriPhrase phrases + exact IPA phones (hard/easy negatives + channel shift) | 180 / **100** | 630 / 404 | **0 / 0** | 50.05 Hz |
 
-- **First Subtraction (Heads, Losses, Receptive Field, PE)**:
-  - `FixedSlotHead` achieves **0.0%** on every 100-word OOV pool (confirming zero leakage).
-  - Bidirectional **`TextAnchoredHead` + `Multi-Positive InfoNCE`** achieves **85.61%** macro 3-tier OOV R@5 (`0.130 ms/clip`), matching `LMBridgedHead (pairwise)` (**85.51%**, **3.1× slower** at `0.398 ms/clip`) and outperforming `LMBridgedHead (qformer)` (**84.81%**), `AudioToTextSpaceHead` (**83.41%**), `SigLIP` (**85.08%**), and `CosFace Hybrid` (**83.97%**).
-  - Replacing heavy `MultiStatisticPNAPooling` with **`RelativePhasePooling`** (`[0, 1]` `NormalizedRelativePositionalEncoding`) + `dilations=(1, 2, 4)` lifts 3-seed 100-word OOV R@5 to **75.6% (T1) / 91.2% (T2) / 93.1% (T3)** and cuts `0.6×/1.6×` speaking-rate drop below absolute PE on all 3 tiers (`33.2 vs 34.6 pp`, `36.5 vs 38.0 pp`, `32.7 vs 35.3 pp`).
-- **Second Subtraction (Domain Regularizers & FSQ)**:
-  - On frozen 50 Hz `WavLM-Large` features, **No Domain Regularizer** (**84.81%** OOV / **81.56%** unseen-dialect OOD) matches or beats Class-Conditional CORAL (**84.63% / 80.95%**) and DANN (**84.89% / 81.75%**).
-  - Enabling **FSQ (`[5,5,5,5,5,5]`)** shows healthy mask-safe codebook utilization (**Perplexity 90.2, Unique Ratio 95.8%**) yet degrades OOV R@5 by **-7.30 pp** (**77.51%**) due to the 6-dim scalar bottleneck. All three regularizers are stripped from the default training path.
+Running the 6 original v4 configs unchanged on a single NVIDIA H20 ([`reports/ablation_summary.json`](reports/ablation_summary.json)) immediately exposed which modules hurt real performance: `FixedSlotHead` scored **0.0%** on every OOV pool, lightweight `TextAnchoredHead` reached **72.8% / 92.2% / 91.5%** OOV R@5, while `domain_regularized` (CORAL + DANN + FSQ) plunged by **18–34 pp** and trained nearly 3× slower.
 
-## 3. Built-In Dual-Track Gate & Unlabeled Test-Time Domain Calibration
+## 2. Two Subtractive Cuts Across 3 Random Seeds
 
-[`calibration.py`](dialect_crossmodal_align/calibration.py) locks the open-set gate (`Top-1 Cosine + Pool Z-Prominence + Top1–Top5 Margin + Channel Energy`) at `target_fpr = 1%` on in-domain dev negatives. On unseen dialects/channels, `TestTimeDomainCalibrator` aligns 50 Hz per-channel stats and background gate moments using **only an unlabeled target background buffer** (zero labels, zero retraining):
+**Cut 1 (Heads, Losses, Receptive Field, Speaking-Rate PE):** Traditional absolute positional encoding acts like a stopwatch—when speakers drag (`0.6x`) or rush (`1.6x`), fixed-millisecond ticks drift out of phase. Keeping **`RelativePhasePooling [0, 1]`** (progress-bar alignment from 0% to 100%) alongside multi-scale dilated convolutions (`dilations=(1, 2, 4)`) beats absolute PE on speaking-rate scaling across all three tiers.
 
-| Tier | In-Domain Dual-Track R@5 (`FPR`) | Uncalibrated OOD Dual-Track R@5 (`AUROC`) | **Calibrated OOD Dual-Track R@5** | **Calibrated OOD FPR** | **Recovery vs In-Domain** |
+<p align="center">
+  <img src="docs/assets/fig2_oov_and_rate_pooling.jpg" alt="Figure 2: Zero-shot compositional OOV alignment (left) and RelativePhasePooling [0,1] vs Absolute PE under 0.6x/1.6x speaking rates (right)" width="960" />
+  <br />
+  <sub>Figure 2: Zero-shot compositional OOV alignment without audio enrollment (left) and RelativePhasePooling [0,1] vs fixed-time Absolute PE (right)</sub>
+</p>
+
+**Cut 2 (Domain Regularizers & FSQ):** Starting from **No Domain Regularizer** (`84.81%` macro OOV R@5, `81.56%` unseen-dialect OOD) on frozen 50 Hz `WavLM-Large` features, neither Class-Conditional CORAL (`84.63%`) nor DANN (`84.89%`) delivered meaningful gain, while **FSQ (`[5,5,5,5,5,5]`)**—despite healthy mask-safe codebook utilization (Perplexity `90.2`, Unique `95.8%`)—compressed fine phonetic cues and dropped OOV R@5 by **-7.30 pp** (`77.51%`). All three regularizers were retired to [`experiments/ARCHIVED.md`](experiments/ARCHIVED.md).
+
+<p align="center">
+  <img src="docs/assets/fig3_two_cut_ablation.jpg" alt="Figure 3: Two-cut 3-seed subtractive ablation on real 50 Hz benchmarks" width="960" />
+  <br />
+  <sub>Figure 3: Two-cut 3-seed subtractive ablation on real 50 Hz benchmarks—TextAnchoredHead + zero domain regularizers emerge as the v5 default</sub>
+</p>
+
+## 3. Solving the Routing Trap with Label-Free Test-Time Calibration
+
+In open-set deployment, a locked `1% FPR` gate wall trained indoors fails catastrophically when a new dialect or microphone shifts all scores downward: **AUROC stays deceptively high (`0.85–0.97`) while true dual-track hits collapse from `65.3%` to `15.9%`**.
+
+[`calibration.py`](dialect_crossmodal_align/calibration.py) builds the fix directly into inference via **`TestTimeDomainCalibrator`**: listen to a short buffer of **unlabeled target-domain background audio** (zero labels, zero retraining), align 50 Hz per-channel statistics, and shift the gate wall using background mean/std + a 99% quantile guardrail.
+
+| Tier & Real OOD Shift | In-Domain Dual R@5 (`FPR`) | Uncalibrated OOD Dual R@5 (`AUROC`) | **Calibrated OOD Dual R@5 (`AUROC`)** | **Calibrated FPR** | **Recovery vs In-Domain** |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| **T1 Wu** (Indoor → Unseen Wild Wu + Channel) | 43.7% (`0.97%`) | **10.1%** (`0.897`) | **54.2%** (`0.943`) | **0.00%** | **125.0%** |
+| **T1 Wu** (Indoor → Wild Wu + Channel) | 43.7% (`0.97%`) | **10.1%** (`0.897`) | **54.2%** (`0.943`) | **0.00%** | **125.0%** |
 | **T2 Dialects** (Seen → Unseen SW/LY/NE + Channel) | 53.2% (`0.62%`) | **2.9%** (`0.850`) | **35.0%** (`0.892`) | **0.79%** | **66.8%** (12.1× lift) |
 | **T3 English** (LibriPhrase + Channel) | 98.9% (`2.92%`) | **34.6%** (`0.974`) | **96.2%** (`0.993`) | 2.31% | **97.3%** |
-| **3-Tier Macro (Gate 3)** | **65.3%** | **15.9%** (collapse) | **61.8%** (`AUROC 0.943`) | **1.03% (≤ 2%)** | **94.7% (≥ 80%)** |
+| **3-Tier Macro (Gate 3)** | **65.3%** | **15.9%** (collapse) | **61.8%** (`0.943`) | **1.03% (≤ 2%)** | **94.7% (≥ 80%)** |
 
-## 4. Automated 4-Gate Release Verification & Live Lab
+<p align="center">
+  <img src="docs/assets/fig4_routing_trap_calibration.jpg" alt="Figure 4: Routing-trap mechanism under domain shift and 3-seed dual-track recovery via label-free test-time calibration" width="960" />
+  <br />
+  <sub>Figure 4: Routing-trap collapse mechanism (left) and 3-seed cross-domain dual-track R@5 recovery via label-free test-time calibration (right)</sub>
+</p>
+
+## 4. Four Hard Release Gates, Live Lab & Quick Start
+
+Run [`scripts/verify_release_gates.py`](scripts/verify_release_gates.py) to audit all four gates (currently **4/4 PASS** alongside **12/12 passing unit tests** and AST zero-dialect-coupling verification), or explore the zero-backend interactive **[CrossModal Align Lab](https://leeoisaboy.github.io/dialect-crossmodal-align/)**:
+
+<p align="center">
+  <a href="https://leeoisaboy.github.io/dialect-crossmodal-align/">
+    <img src="docs/assets/lab-demo.gif" alt="CrossModal Align Lab four-module live interactive showcase" width="960" />
+  </a>
+</p>
 
 ```bash
+git clone https://github.com/leeoisaboy/dialect-crossmodal-align.git
+cd dialect-crossmodal-align
 python -m pip install -e . pytest
-pytest -q                                  # Unit tests + AST zero-dialect audit
-python scripts/verify_release_gates.py     # All 4 Hard Release Gates (PASS)
+
+pytest -q                                  # 12 unit tests + AST zero-dialect audit
+python scripts/verify_release_gates.py     # Automated 4-gate Pass/Fail check
 python scripts/export_lab_bundle.py        # Export studio/data/lab_bundle.json
 python -m http.server 8767 --directory studio
 ```
-
-<p align="center"><strong><a href="https://leeoisaboy.github.io/dialect-crossmodal-align/">▶ Open CrossModal Align Lab (Zero-Backend Live Demo)</a></strong></p>
 
 ## White-Box Speech Retrieval Trilogy
 
 | Repository | Focus | Stack | Live Interactive Studio |
 | --- | --- | --- | --- |
-| **[disentangle-acoustic-print](https://github.com/leeoisaboy/disentangle-acoustic-print)** | Acoustic geometry disentanglement & 4-layer fingerprint oscilloscope | Pure NumPy · Training-free · 60 FPS Live Mic | [Acoustic Print Studio ↗](https://leeoisaboy.github.io/disentangle-acoustic-print/) |
-| **[audiollm-latent-kws](https://github.com/leeoisaboy/audiollm-latent-kws)** | Frozen Audio-LLM two-stage retrieval & zero-leak audit studio | Frozen LLM · 0.00% Leak · 7 Archived Ablations | [Latent-KWS Audit Studio ↗](https://leeoisaboy.github.io/audiollm-latent-kws/) |
-| **[dialect-crossmodal-align](https://github.com/leeoisaboy/dialect-crossmodal-align)** | Minimal 4-stage cross-modal alignment & unlabeled test-time calibration | PyTorch · 50 Hz Public Bench · 4/4 Gates PASS | [CrossModal Align Lab ↗](https://leeoisaboy.github.io/dialect-crossmodal-align/) |
+| **[disentangle-acoustic-print](https://github.com/leeoisaboy/disentangle-acoustic-print)** | Disentangling speaker timbre vs phonetic content trajectories | Pure NumPy · Training-free · 60 FPS Live Mic | [Acoustic Print Studio ↗](https://leeoisaboy.github.io/disentangle-acoustic-print/) |
+| **[AudioLLM-Latent-KWS](https://github.com/leeoisaboy/audiollm-latent-kws)** | 1–2 shot audio-template retrieval on frozen Audio-LLMs | Frozen LLM · 0.00% Leak · 7 Archived Ablations | [Latent-KWS Audit Studio ↗](https://leeoisaboy.github.io/audiollm-latent-kws/) |
+| **[Dialect-CrossModal-Align](https://github.com/leeoisaboy/dialect-crossmodal-align)** | Zero-shot phoneme/IPA alignment & label-free test-time calibration | PyTorch · 50 Hz Public Bench · 4/4 Gates PASS | [CrossModal Align Lab ↗](https://leeoisaboy.github.io/dialect-crossmodal-align/) |
+
+- **Repository**: [Dialect-CrossModal-Align](https://github.com/leeoisaboy/dialect-crossmodal-align)
+- **Live Lab**: https://leeoisaboy.github.io/dialect-crossmodal-align/
+- **Public 50 Hz Benchmark**: https://huggingface.co/datasets/Leeoisaboy/dialect-crossmodal-align-bench
+
+**High ranking scores only pass the lab; holding the gate wall across domains is what reaches production.**
