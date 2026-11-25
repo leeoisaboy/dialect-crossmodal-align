@@ -5,7 +5,7 @@ __pycache__/
 build/
 dist/
 *.egg-info/
-reports/
+reports/*
 !reports/routing_trap.json
 !reports/convergence_gates.json
 !reports/ablation_summary.json
